@@ -1,0 +1,329 @@
+# Movie Theater Seat Reservation System
+
+# --- DATA STORAGE ---
+users = {"admin": "admin123"}       # Predefined admin account
+user_type = {"admin": "admin"}      # Identify account type
+
+movies = [
+    {"name": "Avengers: Endgame", "date": "Nov 10, 2025", "time": "7:00 PM"},
+    {"name": "Avatar", "date": "Nov 11, 2025", "time": "5:00 PM"},
+    {"name": "The Batman", "date": "Nov 12, 2025", "time": "9:00 PM"}
+]
+
+reservations = []       # Stores confirmed reservations
+cancellations = []      # Stores cancelled bookings
+
+# Each movie gets its own 5x5 seat map (O = available)
+movie_seats = {i: [[0 for _ in range(5)] for _ in range(5)] for i in range(len(movies))}
+
+# --- LOGIN MENU ---
+def display_login_menu():
+    print("\n===== Welcome to Movie Theater Seat Reservation =====")
+    print("1. Log In")
+    print("2. Register")
+    print("3. Exit")
+
+def login():
+    print("\n--- Log In ---")
+    username = input("Enter username: ")
+    password = input("Enter password: ")
+
+    if username in users and users[username] == password:
+        print(f"\nLogin successful! Welcome, {username}!")
+        if user_type[username] == "admin":
+            admin_menu()
+        else:
+            customer_menu(username)
+    else:
+        print("\nInvalid username or password. Please try again.")
+
+def register():
+    print("\n--- Register ---")
+    username = input("Enter new username: ")
+
+    if username in users:
+        print("Username already exists. Please try another one.")
+        return
+
+    password = input("Enter new password: ")
+    users[username] = password
+    user_type[username] = "customer"
+    print("\nRegistration successful! You can now log in.")
+
+# --- ADMIN MENU ---
+def admin_menu():
+    while True:
+        print("\n===== ADMIN MENU =====")
+        print("1. View confirmed reservation seats")
+        print("2. Check seat availability")
+        print("3. View cancel booking")
+        print("4. Manage movie list (Add/Delete)")
+        print("5. Exit to Login Menu")
+
+        choice = input("Enter your choice (1-5): ")
+
+        if choice == "1":
+            view_confirmed_reservations()
+        elif choice == "2":
+            view_seat_layout_admin()
+        elif choice == "3":
+            view_cancelled_bookings()
+        elif choice == "4":
+            add_or_delete_movie()
+        elif choice == "5":
+            print("\nReturning to Login Menu...")
+            break
+        else:
+            print("\nInvalid choice. Try again.")
+
+def view_confirmed_reservations():
+    print("\n--- Confirmed Reservations ---")
+    if not reservations:
+        print("No confirmed reservations yet.")
+    else:
+        for r in reservations:
+            print("\n===============================")
+            print(f"Customer Name : {r['name']}")
+            print(f"Username      : {r['username']}")
+            print(f"Movie         : {r['movie']}")
+            print(f"Date          : {r['date']}")
+            print(f"Time          : {r['time']}")
+            print(f"Seats         : {', '.join(r['seats'])}")
+            print("===============================")
+
+def view_seat_layout_admin():
+    print("\n--- Movie Seat Layout ---")
+    if not movies:
+        print("No movies available.")
+        return
+
+    for i, movie in enumerate(movies, start=1):
+        print(f"\n{i}. {movie['name']} | Date: {movie['date']} | Time: {movie['time']}")
+
+    try:
+        choice = int(input("\nSelect movie number to view seats: ")) - 1
+        if choice not in range(len(movies)):
+            print("Invalid choice.")
+            return
+    except ValueError:
+        print("Invalid input.")
+        return
+
+    print("\n(0 = Available, X = Reserved)\n")
+    for row in movie_seats[choice]:
+        print(" ".join(['X' if s == 1 else '0' for s in row]))
+
+def view_cancelled_bookings():
+    print("\n--- Cancelled Bookings ---")
+    if not cancellations:
+        print("No cancelled bookings.")
+    else:
+        for c in cancellations:
+            print("\n===============================")
+            print(f"Customer Name : {c['name']}")
+            print(f"Username      : {c['username']}")
+            print(f"Movie         : {c['movie']}")
+            print(f"Date          : {c['date']}")
+            print(f"Time          : {c['time']}")
+            print(f"Cancelled Seats: {', '.join(c['seats'])}")
+            print("===============================")
+
+def add_or_delete_movie():
+    while True:
+        print("\n--- Manage Movies ---")
+        if not movies:
+            print("No movies available.")
+        else:
+            for i, movie in enumerate(movies, start=1):
+                print(f"{i}. {movie['name']} | Date: {movie['date']} | Time: {movie['time']}")
+
+        print("\n1. Add New Movie")
+        print("2. Delete Movie")
+        print("3. Back to Admin Menu")
+
+        choice = input("Enter your choice (1-3): ")
+
+        if choice == "1":
+            movie_name = input("Enter Movie Name: ")
+            date = input("Enter Date (e.g., Nov 15, 2025): ")
+            time = input("Enter Time (e.g., 7:00 PM): ")
+            if movie_name and date and time:
+                movies.append({"name": movie_name, "date": date, "time": time})
+                movie_seats[len(movies) - 1] = [[0 for _ in range(5)] for _ in range(5)]
+                print(f"\nMovie '{movie_name}' added successfully!")
+            else:
+                print("All fields are required.")
+        elif choice == "2":
+            if not movies:
+                print("No movies to delete.")
+            else:
+                try:
+                    num = int(input("Enter the movie number to delete: "))
+                    if 1 <= num <= len(movies):
+                        deleted = movies.pop(num - 1)
+                        movie_seats.pop(num - 1)
+                        print(f"\nDeleted movie: {deleted['name']}")
+                    else:
+                        print("Invalid number.")
+                except ValueError:
+                    print("Please enter a valid number.")
+        elif choice == "3":
+            break
+        else:
+            print("Invalid choice.")
+
+# --- CUSTOMER MENU ---
+def customer_menu(username):
+    while True:
+        print("\n===== CUSTOMER MENU =====")
+        print("1. View Movies")
+        print("2. View available seats")
+        print("3. Reserve Seat")
+        print("4. View and Cancel Reservation")
+        print("5. Exit to Login Menu")
+
+        choice = input("Enter your choice (1-5): ")
+
+        if choice == "1":
+            view_movies()
+        elif choice == "2":
+            view_seat_layout_customer()
+        elif choice == "3":
+            reserve_seat(username)
+        elif choice == "4":
+            view_and_cancel_reservation(username)
+        elif choice == "5":
+            print("\nReturning to Login Menu...")
+            break
+        else:
+            print("\nInvalid choice. Try again.")
+
+def view_movies():
+    print("\n--- Movie List ---")
+    if not movies:
+        print("No movies available.")
+    else:
+        for i, movie in enumerate(movies, start=1):
+            print(f"{i}. {movie['name']} | Date: {movie['date']} | Time: {movie['time']}")
+
+def view_seat_layout_customer():
+    print("\n--- Seat Layout ---")
+    view_movies()
+    try:
+        choice = int(input("\nSelect movie number to view seats: ")) - 1
+        if choice not in range(len(movies)):
+            print("Invalid choice.")
+            return
+    except ValueError:
+        print("Invalid input.")
+        return
+
+    print("\n(0 = Available, X = Reserved)\n")
+    for row in movie_seats[choice]:
+        print(" ".join(['X' if s == 1 else '0' for s in row]))
+
+def reserve_seat(username):
+    print("\n--- Reserve Seats ---")
+    name = input("Enter your full name: ")
+    view_movies()
+    movie_choice = input("Choose a movie by number: ")
+
+    try:
+        movie_choice = int(movie_choice) - 1
+        if movie_choice not in range(len(movies)):
+            print("Invalid movie selection.")
+            return
+        movie_selected = movies[movie_choice]
+    except ValueError:
+        print("Invalid movie selection.")
+        return
+
+    seats_chosen = []
+    while True:
+        print("\n(0 = Available, X = Reserved)\n")
+        for row in movie_seats[movie_choice]:
+            print(" ".join(['X' if s == 1 else '0' for s in row]))
+
+        try:
+            row = int(input("Enter Row (1-5): ")) - 1
+            col = int(input("Enter Seat (1-5): ")) - 1
+            if not (0 <= row < 5 and 0 <= col < 5):
+                print("Invalid seat position.")
+                continue
+            if movie_seats[movie_choice][row][col] == 1:
+                print("Seat already reserved.")
+                continue
+            movie_seats[movie_choice][row][col] = 1
+            seat_label = f"{chr(65 + row)}{col + 1}"
+            seats_chosen.append(seat_label)
+            print(f"Seat {seat_label} reserved successfully!")
+        except ValueError:
+            print("Please enter valid numbers.")
+
+        more = input("Reserve another seat? (yes/no): ").lower()
+        if more != "yes":
+            break
+
+    if seats_chosen:
+        reservations.append({
+            "username": username,
+            "name": name,
+            "movie": movie_selected['name'],
+            "date": movie_selected['date'],
+            "time": movie_selected['time'],
+            "seats": seats_chosen
+        })
+        print(f"\n✅ Successful reservation! You reserved seats: {', '.join(seats_chosen)}")
+    else:
+        print("No seats were reserved.")
+
+def view_and_cancel_reservation(username):
+    print("\n--- Your Reservation Information ---")
+    user_reservations = [r for r in reservations if r["username"] == username]
+
+    if not user_reservations:
+        print("You have no active reservations.")
+        return
+
+    for r in user_reservations:
+        print("\n===============================")
+        print(f"Name  : {r['name']}")
+        print(f"Movie : {r['movie']}")
+        print(f"Date  : {r['date']}")
+        print(f"Time  : {r['time']}")
+        print(f"Seats : {', '.join(r['seats'])}")
+        print("===============================")
+
+    choice = input("\nCancel Reserve Seat? (yes/no): ").lower()
+    if choice == "yes":
+        for r in user_reservations:
+            movie_index = next((i for i, m in enumerate(movies) if m["name"] == r["movie"]), None)
+            if movie_index is not None:
+                for seat in r["seats"]:
+                    row = ord(seat[0]) - 65
+                    col = int(seat[1]) - 1
+                    movie_seats[movie_index][row][col] = 0
+            cancellations.append(r)
+            reservations.remove(r)
+        print("\nReservation cancelled successfully. Seats are now available.")
+    else:
+        print("\nReturning to Customer Menu...")
+
+# --- MAIN LOOP ---
+def main():
+    while True:
+        display_login_menu()
+        choice = input("\nEnter your choice (1-3): ")
+
+        if choice == "1":
+            login()
+        elif choice == "2":
+            register()
+        elif choice == "3":
+            print("\nThank you for using the Movie Theater Seat Reservation System. Goodbye!")
+            break
+        else:
+            print("\nInvalid choice. Please select 1, 2, or 3.")
+
+# --- Run the Program ---
+main()
